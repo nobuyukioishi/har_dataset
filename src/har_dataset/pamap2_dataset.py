@@ -5,7 +5,7 @@ import os
 import errno
 import requests
 from tqdm import tqdm
-from utils import get_file_list_in_zip, linear_interpolation
+from .utils import get_file_list_in_zip, linear_interpolation
 from zipfile import ZipFile
 from io import BytesIO
 import pandas as pd
@@ -18,6 +18,7 @@ class Pamap2Dataset:
     HR_SENSOR_SAMPLE_RATE = 9  # ~9 Hz
     TIMESTAMP_COLUMN_NAME = "timestamp"
     LABEL_COLUMN_NAME = "activityID"
+    SENSOR_TYPES: Tuple[str] = ("acc8g", "acc16g", "gyro", "mag")
     SUBJECTS: Tuple[str] = tuple(f"subject{i}" for i in range(101, 110))
     RUNS: Tuple[str] = ("Protocol", "Optional")
     IMU_SENSORS: Tuple[str] = ("IMU_hand", "IMU_chest", "IMU_ankle")
@@ -90,13 +91,13 @@ class Pamap2Dataset:
     @staticmethod
     def get_imu_data_columns(
         imu_sensors: List[Literal[IMU_SENSORS]] = list(IMU_SENSORS),
-        acc_range: Literal["16g", "6g"] = "16g",
+        sensor_types: List[str] = ["acc16g", "gyro", "mag"],
     ):
         """Return data columns of the specified IMU sensor(s). In PAMAP2 dataset, accelerometer data has been recorded
          in two different scales, ±16g and ±6g. Since some data exceeds the range of ±6g, this library uses the data
          recorded in ±16g by default
         :param imu_sensors: List of IMU sensors
-        :param acc_range: "16g" or "6g". Default acc_range is 16 g
+        :param sensor_types: subset of Pamap2Dataset.SENSOR_TYPES
         :return:
         """
         return [
@@ -104,7 +105,7 @@ class Pamap2Dataset:
             for imu_sensor in imu_sensors
             for col in [
                 f"{sensor}{axis}"
-                for sensor in [f"acc{acc_range[:-1]}", "gyro", "mag"]
+                for sensor in sensor_types
                 for axis in ["X", "Y", "Z"]
             ]
         ]
